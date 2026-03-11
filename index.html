@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NexusPlay — Play Beyond Limits</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --cyan: #00f5ff;
+    --magenta: #ff003c;
+    --bg: #050505;
+    --bg2: #0a0a0f;
+    --bg3: #0f0f1a;
+    --text: #e0e8ff;
+    --dim: #6a7a9a;
+    --glow-c: 0 0 8px #00f5ff, 0 0 20px #00f5ff55, 0 0 40px #00f5ff22;
+    --glow-m: 0 0 8px #ff003c, 0 0 20px #ff003c55, 0 0 40px #ff003c22;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; cursor: none; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow-x: hidden;
+  }
+
+  /* Custom Cursor */
+  #cursor {
+    position: fixed; width: 12px; height: 12px;
+    background: var(--cyan); border-radius: 50%;
+    pointer-events: none; z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, background 0.2s;
+    box-shadow: var(--glow-c);
+  }
+  #cursor-ring {
+    position: fixed; width: 36px; height: 36px;
+    border: 1px solid var(--cyan); border-radius: 50%;
+    pointer-events: none; z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.15s ease, width 0.2s, height 0.2s, opacity 0.2s;
+    opacity: 0.5;
+  }
+
+  /* Scanline Overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,245,255,0.012) 2px, rgba(0,245,255,0.012) 4px
+    );
+    pointer-events: none; z-index: 9997;
+  }
+
+  /* Grid texture */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 9996;
+  }
+
+  /* ── NAVBAR ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 5vw; height: 64px;
+    background: rgba(5,5,5,0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(0,245,255,0.12);
+  }
+  .nav-logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.6rem; font-weight: 700; letter-spacing: 3px;
+    color: var(--cyan); text-shadow: var(--glow-c);
+    text-decoration: none;
+  }
+  .nav-logo span { color: var(--magenta); text-shadow: var(--glow-m); }
+  .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+  .nav-links a {
+    font-size: 0.78rem; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--dim); text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--cyan); text-shadow: var(--glow-c); }
+  .nav-cta {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.85rem; font-weight: 600; letter-spacing: 2px;
+    padding: 8px 24px; border: 1px solid var(--magenta);
+    color: var(--magenta); background: transparent; cursor: none;
+    text-transform: uppercase; transition: all 0.25s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .nav-cta:hover {
+    background: var(--magenta); color: #fff;
+    box-shadow: var(--glow-m);
+  }
+  .nav-hamburger { display: none; flex-direction: column; gap: 5px; cursor: none; }
+  .nav-hamburger span { width: 24px; height: 2px; background: var(--cyan); }
+
+  /* ── HERO ── */
+  #hero {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+    padding: 100px 5vw 60px;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 30%, rgba(0,245,255,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(255,0,60,0.05) 0%, transparent 70%),
+      var(--bg);
+    position: relative; overflow: hidden;
+  }
+
+  .hero-badge {
+    font-size: 0.7rem; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--cyan); border: 1px solid rgba(0,245,255,0.3);
+    padding: 5px 16px; margin-bottom: 2rem;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .hero-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(3.5rem, 10vw, 9rem);
+    font-weight: 700; line-height: 0.92;
+    letter-spacing: -1px;
+    color: #fff;
+    animation: fadeUp 0.9s 0.1s ease both;
+    position: relative;
+  }
+  .hero-title .glitch {
+    position: relative; display: inline-block;
+    animation: glitch 3s infinite;
+  }
+  .hero-title .glitch::before,
+  .hero-title .glitch::after {
+    content: attr(data-text);
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  }
+  .hero-title .glitch::before {
+    color: var(--cyan); clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+    animation: glitch-top 3s infinite;
+  }
+  .hero-title .glitch::after {
+    color: var(--magenta); clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+    animation: glitch-bot 3s infinite;
+  }
+
+  @keyframes glitch {
+    0%,90%,100% { transform: none; }
+    91% { transform: skewX(-2deg); }
+    93% { transform: skewX(2deg); }
+    95% { transform: skewX(-1deg); }
+  }
+  @keyframes glitch-top {
+    0%,90%,100% { transform: none; opacity: 0; }
+    91% { transform: translate(-3px, -2px); opacity: 0.8; }
+    93% { transform: translate(3px, 2px); opacity: 0.8; }
+    95% { transform: none; opacity: 0; }
+  }
+  @keyframes glitch-bot {
+    0%,90%,100% { transform: none; opacity: 0; }
+    92% { transform: translate(3px, 2px); opacity: 0.8; }
+    94% { transform: translate(-3px, -2px); opacity: 0.8; }
+    96% { transform: none; opacity: 0; }
+  }
+
+  .hero-sub {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    color: var(--dim); letter-spacing: 6px;
+    text-transform: uppercase; margin-top: 1.5rem;
+    animation: fadeUp 1s 0.2s ease both;
+  }
+
+  .hero-btns {
+    display: flex; gap: 1.2rem; margin-top: 2.5rem;
+    animation: fadeUp 1s 0.35s ease both;
+  }
+  .btn-primary {
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase;
+    padding: 14px 40px; background: var(--cyan); color: #000;
+    border: none; cursor: none;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    animation: pulse-cyan 2.5s ease infinite;
+    transition: transform 0.2s;
+  }
+  .btn-primary:hover { transform: scale(1.04); }
+  .btn-outline {
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+    font-size: 0.9rem; letter-spacing: 3px; text-transform: uppercase;
+    padding: 14px 40px; background: transparent; color: var(--text);
+    border: 1px solid rgba(255,255,255,0.2); cursor: none;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    transition: all 0.2s;
+  }
+  .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  @keyframes pulse-cyan {
+    0%,100% { box-shadow: 0 0 12px #00f5ff, 0 0 30px #00f5ff55; }
+    50% { box-shadow: 0 0 24px #00f5ff, 0 0 60px #00f5ff44, 0 0 100px #00f5ff22; }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .hero-stats {
+    display: flex; gap: 4rem; margin-top: 4rem;
+    animation: fadeUp 1s 0.5s ease both;
+  }
+  .stat { text-align: center; }
+  .stat-num {
+    font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 700;
+    color: var(--cyan);
+  }
+  .stat-label { font-size: 0.65rem; letter-spacing: 3px; color: var(--dim); text-transform: uppercase; }
+
+  .hero-scroll {
+    position: absolute; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--dim); font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase;
+    animation: fadeUp 1s 1s ease both;
+  }
+  .scroll-line {
+    width: 1px; height: 50px; background: linear-gradient(var(--cyan), transparent);
+    animation: scrollLine 1.5s ease infinite;
+  }
+  @keyframes scrollLine {
+    0% { transform: scaleY(0); transform-origin: top; }
+    50% { transform: scaleY(1); transform-origin: top; }
+    51% { transform: scaleY(1); transform-origin: bottom; }
+    100% { transform: scaleY(0); transform-origin: bottom; }
+  }
+
+  /* ── SECTION SHARED ── */
+  section { padding: 100px 5vw; }
+  .section-label {
+    font-size: 0.65rem; letter-spacing: 5px; color: var(--magenta);
+    text-transform: uppercase; margin-bottom: 0.6rem;
+  }
+  .section-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 700;
+    color: #fff; margin-bottom: 3rem;
+    line-height: 1;
+  }
+  .section-title span { color: var(--cyan); }
+
+  /* ── FEATURED GAMES ── */
+  #games { background: var(--bg2); }
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  .game-card {
+    position: relative; overflow: hidden;
+    background: var(--bg3); border: 1px solid rgba(0,245,255,0.08);
+    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+    animation: fadeUp 0.7s ease both;
+    cursor: none;
+  }
+  .game-card:nth-child(1) { animation-delay: 0.0s; }
+  .game-card:nth-child(2) { animation-delay: 0.1s; }
+  .game-card:nth-child(3) { animation-delay: 0.2s; }
+  .game-card:nth-child(4) { animation-delay: 0.3s; }
+  .game-card:nth-child(5) { animation-delay: 0.4s; }
+  .game-card:nth-child(6) { animation-delay: 0.5s; }
+  .game-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0,245,255,0.4);
+    box-shadow: 0 0 30px rgba(0,245,255,0.1), 0 20px 40px rgba(0,0,0,0.5);
+  }
+  .game-thumb {
+    width: 100%; aspect-ratio: 16/9;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4rem;
+    position: relative; overflow: hidden;
+  }
+  .game-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 40%, var(--bg3) 100%);
+  }
+  .game-info { padding: 1.2rem; }
+  .game-tags { display: flex; gap: 0.5rem; margin-bottom: 0.7rem; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase;
+    padding: 3px 10px; border: 1px solid rgba(0,245,255,0.25);
+    color: var(--cyan);
+  }
+  .tag.hot { border-color: rgba(255,0,60,0.4); color: var(--magenta); }
+  .game-name {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700;
+    color: #fff; margin-bottom: 0.4rem;
+  }
+  .game-meta {
+    font-size: 0.65rem; color: var(--dim); letter-spacing: 1px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .game-rating { color: var(--cyan); font-weight: 600; }
+  .play-btn {
+    display: block; width: 100%; margin-top: 1rem;
+    padding: 10px; text-align: center;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase;
+    background: transparent; border: 1px solid rgba(0,245,255,0.2);
+    color: var(--cyan); cursor: none;
+    transition: all 0.25s;
+  }
+  .play-btn:hover { background: var(--cyan); color: #000; }
+
+  .games-data {
+    display: none; /* data holder */
+  }
+
+  /* ── LEADERBOARD ── */
+  #leaderboard { background: var(--bg); }
+  .lb-wrap { max-width: 860px; }
+  .lb-header {
+    display: grid; grid-template-columns: 60px 1fr 120px 100px 80px;
+    padding: 0 1.5rem 1rem; border-bottom: 1px solid rgba(0,245,255,0.12);
+    font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: var(--dim);
+  }
+  .lb-row {
+    display: grid; grid-template-columns: 60px 1fr 120px 100px 80px;
+    align-items: center; padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+  .lb-row:hover { background: rgba(0,245,255,0.03); }
+  .lb-row:nth-child(1) { animation-delay: 0.0s; }
+  .lb-row:nth-child(2) { animation-delay: 0.1s; }
+  .lb-row:nth-child(3) { animation-delay: 0.2s; }
+  .lb-row:nth-child(4) { animation-delay: 0.3s; }
+  .lb-row:nth-child(5) { animation-delay: 0.4s; }
+  .lb-row:nth-child(6) { animation-delay: 0.5s; }
+  .rank {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.4rem; font-weight: 700;
+    color: var(--dim);
+  }
+  .rank.top1 { color: #ffd700; text-shadow: 0 0 10px #ffd70088; }
+  .rank.top2 { color: #c0c0c0; }
+  .rank.top3 { color: #cd7f32; }
+  .player-info { display: flex; align-items: center; gap: 1rem; }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+    border: 2px solid rgba(0,245,255,0.2);
+  }
+  .player-name {
+    font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 600; color: #fff;
+  }
+  .player-handle { font-size: 0.65rem; color: var(--dim); }
+  .score {
+    font-family: 'Rajdhani', sans-serif; font-size: 1rem; font-weight: 700;
+    color: var(--cyan);
+  }
+  .wins { color: var(--text); font-size: 0.85rem; }
+  .badge {
+    font-size: 0.6rem; letter-spacing: 2px; text-transform: uppercase;
+    padding: 3px 10px; border: 1px solid;
+    display: inline-block; white-space: nowrap;
+  }
+  .badge.legend { border-color: #ffd700; color: #ffd700; }
+  .badge.diamond { border-color: var(--cyan); color: var(--cyan); }
+  .badge.platinum { border-color: #a0b8d0; color: #a0b8d0; }
+  .badge.gold { border-color: #e8b84b; color: #e8b84b; }
+
+  /* ── NEWS ── */
+  #news { background: var(--bg2); }
+  .news-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+  .news-card {
+    background: var(--bg3); border: 1px solid rgba(255,255,255,0.05);
+    padding: 1.8rem; position: relative; overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+    animation: fadeUp 0.6s ease both; cursor: none;
+  }
+  .news-card::before {
+    content: ''; position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: linear-gradient(var(--cyan), var(--magenta));
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .news-card:hover { border-color: rgba(0,245,255,0.2); transform: translateY(-4px); }
+  .news-card:hover::before { opacity: 1; }
+  .news-card:nth-child(1) { animation-delay: 0s; }
+  .news-card:nth-child(2) { animation-delay: 0.1s; }
+  .news-card:nth-child(3) { animation-delay: 0.2s; }
+  .news-date { font-size: 0.6rem; letter-spacing: 3px; color: var(--magenta); text-transform: uppercase; margin-bottom: 1rem; }
+  .news-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.25rem; font-weight: 700;
+    color: #fff; line-height: 1.3; margin-bottom: 0.8rem;
+  }
+  .news-excerpt { font-size: 0.75rem; color: var(--dim); line-height: 1.8; }
+  .news-read {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    margin-top: 1.5rem; font-size: 0.65rem; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--cyan);
+    text-decoration: none;
+  }
+  .news-read::after { content: '→'; transition: transform 0.2s; }
+  .news-read:hover::after { transform: translateX(4px); }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid rgba(0,245,255,0.1);
+    padding: 3rem 5vw;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1.5rem;
+  }
+  .footer-logo {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.3rem; font-weight: 700;
+    letter-spacing: 3px; color: var(--cyan);
+  }
+  .footer-logo span { color: var(--magenta); }
+  footer p { font-size: 0.65rem; color: var(--dim); letter-spacing: 1px; }
+  .footer-links { display: flex; gap: 2rem; }
+  .footer-links a {
+    font-size: 0.65rem; letter-spacing: 2px; color: var(--dim);
+    text-decoration: none; text-transform: uppercase; transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--cyan); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .nav-links, .nav-cta { display: none; }
+    .nav-hamburger { display: flex; }
+    .hero-stats { gap: 2rem; flex-wrap: wrap; justify-content: center; }
+    .lb-header, .lb-row { grid-template-columns: 40px 1fr 80px; }
+    .lb-header > *:nth-child(3),
+    .lb-header > *:nth-child(5),
+    .lb-row > *:nth-child(3),
+    .lb-row > *:nth-child(5) { display: none; }
+    footer { flex-direction: column; text-align: center; }
+    .footer-links { flex-wrap: wrap; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+
+<!-- NAVBAR -->
+<nav>
+  <a class="nav-logo" href="#">NEXUS<span>PLAY</span></a>
+  <ul class="nav-links">
+    <li><a href="#games">Games</a></li>
+    <li><a href="#leaderboard">Leaderboard</a></li>
+    <li><a href="#news">News</a></li>
+    <li><a href="#">Community</a></li>
+  </ul>
+  <button class="nav-cta">Sign Up</button>
+  <div class="nav-hamburger"><span></span><span></span><span></span></div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-badge">// v2.0 Launch Now Live</div>
+  <h1 class="hero-title">
+    <span class="glitch" data-text="NEXUS">NEXUS</span><br/>
+    <span style="color:var(--cyan);text-shadow:var(--glow-c)">PLAY</span>
+  </h1>
+  <p class="hero-sub">Play Beyond Limits</p>
+  <div class="hero-btns">
+    <button class="btn-primary">Start Playing</button>
+    <button class="btn-outline">Watch Trailer</button>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num" data-count="2400000">0</div>
+      <div class="stat-label">Active Players</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" data-count="340">0</div>
+      <div class="stat-label">Games Available</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" data-count="98">0</div>
+      <div class="stat-label">Countries</div>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <div class="scroll-line"></div>
+    Scroll
+  </div>
+</section>
+
+<!-- FEATURED GAMES -->
+<section id="games">
+  <div class="section-label">// Featured</div>
+  <h2 class="section-title">Top <span>Games</span></h2>
+  <div class="games-grid" id="gamesGrid"></div>
+</section>
+
+<!-- LEADERBOARD -->
+<section id="leaderboard">
+  <div class="section-label">// Rankings</div>
+  <h2 class="section-title">Global <span>Leaderboard</span></h2>
+  <div class="lb-wrap">
+    <div class="lb-header">
+      <span>Rank</span><span>Player</span><span>Score</span><span>Wins</span><span>Tier</span>
+    </div>
+    <div id="leaderboardRows"></div>
+  </div>
+</section>
+
+<!-- NEWS -->
+<section id="news">
+  <div class="section-label">// Latest</div>
+  <h2 class="section-title">Gaming <span>News</span></h2>
+  <div class="news-grid" id="newsGrid"></div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">NEXUS<span>PLAY</span></div>
+  <p>© 2026 NexusPlay. All rights reserved.</p>
+  <nav class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Support</a>
+    <a href="#">Discord</a>
+  </nav>
+</footer>
+
+<script>
+  // Custom Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function animCursor() {
+    cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+    rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    requestAnimationFrame(animCursor);
+  }
+  animCursor();
+  document.querySelectorAll('a,button,[cursor]').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(1.8)';
+      ring.style.width = '60px'; ring.style.height = '60px'; ring.style.opacity = '0.3';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(1
